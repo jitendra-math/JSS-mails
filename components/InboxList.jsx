@@ -7,7 +7,8 @@ export default function InboxList({ onOpenMail, folder = "inbox" }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["emails", folder], // Har folder ki apni alag cache hogi
     queryFn: async () => {
-      const res = await fetch(`/api/api/mail/inbox?folder=${folder}`);
+      // FIX: Yahan double /api tha, ab single /api/mail/inbox kar diya hai
+      const res = await fetch(`/api/mail/inbox?folder=${folder}`);
       const result = await res.json();
       if (!result.success) throw new Error("Fetch failed");
       return result.emails;
