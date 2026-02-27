@@ -7,7 +7,7 @@ import { generateId, stripHtml, generatePreview } from "@/lib/utils";
 
 export async function POST(req) {
   try {
-    // 🔐 auth check
+    // 🔐 Auth check
     if (!isAuthenticated()) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -24,7 +24,7 @@ export async function POST(req) {
       );
     }
 
-    // 🛡️ Security Check: Ensure 'from' domain is yours
+    // 🛡️ Security Check: Sender domain validation
     if (from && !from.includes("@jssoriginals.online")) {
       return NextResponse.json(
         { error: "Invalid sender domain. Only @jssoriginals.online is allowed." },
@@ -32,13 +32,13 @@ export async function POST(req) {
       );
     }
 
-    // 📤 send via Resend
+    // 📤 Send via Resend
     const result = await sendEmail({
-      from: from || process.env.EMAIL_FROM, // Fallback agar front-end se na aaye
+      from: from || process.env.EMAIL_FROM,
       to,
       subject: subject || "(No Subject)",
       html,
-      text,
+      text: stripHtml(html || text || ""), // Recipient ke liye clean text version
     });
 
     if (!result.success) {
@@ -48,19 +48,21 @@ export async function POST(req) {
       );
     }
 
-    // 💾 save to DB (Sent folder)
+    // 💾 Save to DB (Sent folder)
     await connectToDatabase();
 
-    const plainText = text || stripHtml(html || "");
+    // Fix: Prioritize stripping HTML to get real plain text for the preview
+    const cleanContent = html ? stripHtml(html) : (text || "");
+    const finalPreview = generatePreview(cleanContent);
 
     await Email.create({
       messageId: generateId(),
       from: from || process.env.EMAIL_FROM,
       to,
       subject: subject || "(No Subject)",
-      html: html || "",
-      text: plainText,
-      preview: generatePreview(plainText),
+      html: html || "", // Full HTML for MailView
+      text: cleanContent, // Clean text for fallbacks
+      preview: finalPreview, // Clean preview for the list
       folder: "sent",
       read: true,
       receivedAt: new Date(),
