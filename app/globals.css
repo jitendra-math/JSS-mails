@@ -2,13 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---------- Base Reset ---------- */
+/* ---------- Base Reset & Typography ---------- */
 * {
   -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
 }
 
 html, body {
   height: 100%;
+  /* Premium Apple Font Smoothing */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
@@ -17,51 +21,79 @@ body {
     Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* ---------- Smooth Scrolling ---------- */
+/* ---------- Smooth Scrolling & iOS Momentum ---------- */
 html {
   scroll-behavior: smooth;
 }
 
-/* ---------- iPhone style subtle dividers ---------- */
-.divider {
-  @apply border-b border-gray-200;
+/* Enables native momentum scrolling on iOS for scrollable areas */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
 }
 
-/* ---------- Custom Scrollbar (subtle) ---------- */
+/* ---------- Text Selection (iOS Blue) ---------- */
+::selection {
+  background: rgba(0, 122, 255, 0.2);
+  color: inherit;
+}
+
+/* ---------- Custom Scrollbar (Subtle & Mac-like) ---------- */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.15);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 10px;
 }
 
-/* ---------- Button tap effect ---------- */
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* ---------- Form Controls Reset ---------- */
+input,
+textarea,
+select {
+  @apply bg-transparent;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}
+
+/* Remove default iOS input styling (prevents weird shadows on textarea) */
+textarea, 
+input {
+  -webkit-appearance: none;
+}
+
+/* ---------- Button Tap Effect (Native Feel) ---------- */
 button {
   transition: all 0.15s ease;
 }
 
 button:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
-/* ---------- Input styling ---------- */
-input,
-textarea {
-  @apply bg-transparent;
+/* ---------- Safe Area Utilities (Notch & Home Indicator Support) ---------- */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
 }
 
-input:focus,
-textarea:focus {
-  outline: none;
-}
-
-/* ---------- Safe area padding (mobile notch support) ---------- */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-.safe-top {
-  padding-top: env(safe-area-inset-top);
+/* Combines BottomNav height + iPhone bottom safe area */
+.pb-safe {
+  padding-bottom: calc(70px + env(safe-area-inset-bottom)); 
 }
