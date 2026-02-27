@@ -24,9 +24,17 @@ export async function POST(req) {
       );
     }
 
+    // 🛡️ Security Check: Ensure 'from' domain is yours
+    if (from && !from.includes("@jssoriginals.online")) {
+      return NextResponse.json(
+        { error: "Invalid sender domain. Only @jssoriginals.online is allowed." },
+        { status: 403 }
+      );
+    }
+
     // 📤 send via Resend
     const result = await sendEmail({
-      from,
+      from: from || process.env.EMAIL_FROM, // Fallback agar front-end se na aaye
       to,
       subject: subject || "(No Subject)",
       html,
