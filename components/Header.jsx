@@ -1,61 +1,48 @@
 "use client";
 
-import { useState } from "react";
-
-export default function Header({ title = "Inbox", onCompose }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
+export default function Header({ title = "JSS Mails", onCompose }) {
   return (
-    <div className="sticky top-0 z-50 backdrop-blur-xl bg-white/70 border-b border-gray-200">
-      <div className="flex items-center justify-between px-4 py-3">
+    <div className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-gray-100 safe-top">
+      <div className="flex items-center justify-between px-5 py-3">
         
         {/* Left: App Title */}
-        <h1 className="text-lg font-semibold tracking-tight">
+        <h1 className="text-xl font-bold tracking-tight text-gray-900">
           {title}
         </h1>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
           
-          {/* Compose Button */}
+          {/* Compose Button (Premium SVG Icon) */}
           <button
             onClick={onCompose}
-            className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center active:scale-95 transition"
+            className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center active:scale-95 transition shadow-sm"
           >
-            ✉️
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
           </button>
 
-          {/* Menu Button */}
+          {/* Direct Logout Button */}
           <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center active:scale-95 transition"
+            onClick={async () => {
+              if (confirm("Are you sure you want to logout?")) {
+                await fetch("/api/auth/logout", { method: "POST" });
+                window.location.href = "/login";
+              }
+            }}
+            className="w-10 h-10 rounded-full bg-gray-50 text-gray-500 flex items-center justify-center active:scale-95 transition border border-gray-100"
           >
-            ⋯
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
           </button>
+          
         </div>
       </div>
-
-      {/* Dropdown Menu */}
-      {menuOpen && (
-        <div className="absolute right-4 mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-          <button
-            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-            onClick={() => window.location.reload()}
-          >
-            Refresh
-          </button>
-
-          <button
-            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-            onClick={async () => {
-              await fetch("/api/auth/logout", { method: "POST" });
-              window.location.href = "/login";
-            }}
-          >
-            Logout
-          </button>
-        </div>
-      )}
     </div>
   );
 }
