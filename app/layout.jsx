@@ -1,4 +1,5 @@
 import "./globals.css";
+import Providers from "@/components/Providers";
 
 export const metadata = {
   title: "JSS Mail",
@@ -25,7 +26,10 @@ export default function RootLayout({ children }) {
       </head>
 
       <body className="min-h-screen bg-softbg">
-        {children}
+        {/* TanStack Query Provider wrapping the whole app */}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
