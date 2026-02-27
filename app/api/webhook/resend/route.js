@@ -3,32 +3,37 @@ import connectToDatabase from "@/lib/db";
 import Email from "@/models/Email";
 import { normalizeEmailPayload } from "@/lib/utils";
 
-// Resend inbound webhook
 export async function POST(req) {
   try {
     const body = await req.json();
 
-    console.log("📩 Resend webhook received");
+    console.log("📩 Webhook raw:", body);
 
-    // email payload normalize
-    const email = normalizeEmailPayload(body);
+    // 🔥 actual email payload inside body.data
+    const payload = body?.data;
 
-    if (!email.from || !email.to) {
-      return NextResponse.json(
-        { error: "Invalid email payload" },
-        { status: 400 }
-      );
+    if (!payload) {
+      console.log("No payload");
+      return NextResponse.json({ ok: true });
     }
+
+    const email = normalizeEmailPayload({
+      id: payload.id,
+      from: payload.from,
+      to: payload.to?.[0],
+      subject: payload.subject,
+      html: payload.html,
+      text: payload.text
+    });
 
     await connectToDatabase();
 
-    // duplicate check (important)
+    // duplicate check
     const exists = await Email.findOne({ messageId: email.messageId });
     if (exists) {
       return NextResponse.json({ success: true });
     }
 
-    // save incoming mail
     await Email.create({
       messageId: email.messageId,
       from: email.from,
@@ -42,16 +47,12 @@ export async function POST(req) {
       receivedAt: new Date(),
     });
 
-    console.log("✅ Email saved to inbox");
+    console.log("✅ Email saved");
 
     return NextResponse.json({ success: true });
 
-  } catch (error) {
-    console.error("❌ Webhook Error:", error);
-
-    return NextResponse.json(
-      { error: "Webhook failed" },
-      { status: 500 }
-    );
+  } catch (err) {
+    console.error("Webhook error:", err);
+    return NextResponse.json({ error: "fail" }, { status: 500 });
   }
 }
