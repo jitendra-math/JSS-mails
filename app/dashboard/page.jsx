@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import InboxList from "@/components/InboxList";
 import MailView from "@/components/MailView";
@@ -8,14 +9,14 @@ import ComposeModal from "@/components/ComposeModal";
 import BottomNav from "@/components/BottomNav";
 
 export default function DashboardPage() {
+  const queryClient = useQueryClient();
   const [selectedMail, setSelectedMail] = useState(null);
   const [showCompose, setShowCompose] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(Date.now());
   const [currentFolder, setCurrentFolder] = useState("inbox");
 
-  // refresh mails
+  // Manual key ki zaroorat nahi, sirf cache ko 'invalid' mark karna hai
   const refreshMails = () => {
-    setRefreshKey(Date.now());
+    queryClient.invalidateQueries({ queryKey: ["emails"] });
   };
 
   return (
@@ -26,10 +27,9 @@ export default function DashboardPage() {
         onCompose={() => setShowCompose(true)}
       />
 
-      {/* Mail list based on active folder */}
+      {/* Mail list - No refreshKey needed anymore */}
       <InboxList
         folder={currentFolder}
-        refreshKey={refreshKey}
         onOpenMail={(mail) => setSelectedMail(mail)}
       />
 
@@ -38,20 +38,23 @@ export default function DashboardPage() {
         mail={selectedMail}
         onClose={() => {
           setSelectedMail(null);
-          refreshMails();
+          refreshMails(); // Cache refresh when closing (to update read status)
         }}
         onDelete={async (mail) => {
-          // Agar pehle se trash me hai, toh permanent delete karo
           const isPermanent = currentFolder === "trash";
           
-          await fetch("/api/mail/delete", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: mail.id, permanent: isPermanent }),
-          });
+          try {
+            await fetch("/api/mail/delete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: mail.id, permanent: isPermanent }),
+            });
 
-          setSelectedMail(null);
-          refreshMails();
+            setSelectedMail(null);
+            refreshMails(); // Instant UI update
+          } catch (err) {
+            console.error("Delete failed", err);
+          }
         }}
       />
 
@@ -59,7 +62,7 @@ export default function DashboardPage() {
       <ComposeModal
         isOpen={showCompose}
         onClose={() => setShowCompose(false)}
-        onSent={refreshMails}
+        onSent={refreshMails} // Instant update after sending
       />
 
       {/* Premium Bottom Navigation */}
@@ -67,7 +70,7 @@ export default function DashboardPage() {
         activeFolder={currentFolder}
         onChangeFolder={(folder) => {
           setCurrentFolder(folder);
-          setSelectedMail(null); // Tab change karne par open mail band ho jaye
+          setSelectedMail(null);
         }}
       />
       
