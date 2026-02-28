@@ -41,12 +41,14 @@ const EmailSchema = new mongoose.Schema(
       default: "",
     },
 
+    // 👇 Yeh raha tumhara naya, strict Premium Attachments Schema
+    // Is strict definition se "Cast to [string] failed" wala error hamesha ke liye khatam ho jayega
     attachments: [
       {
-        filename: String,
-        url: String,
-        size: Number,
-        type: String,
+        filename: { type: String, required: true },
+        url: { type: String, required: true },
+        size: { type: Number, default: 0 },
+        contentType: { type: String, default: "application/octet-stream" },
       },
     ],
 
@@ -86,5 +88,4 @@ const EmailSchema = new mongoose.Schema(
 );
 
 // prevent model overwrite (nextjs dev issue)
-export default mongoose.models.Email ||
-  mongoose.model("Email", EmailSchema);
+export default mongoose.models.Email || mongoose.model("Email", EmailSchema);
