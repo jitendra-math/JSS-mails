@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
 import Email from "@/models/Email";
-import { Resend } from "resend";
-import { simpleParser } from "mailparser"; // For the raw fallback
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req) {
   try {
@@ -16,34 +12,32 @@ export async function POST(req) {
       return NextResponse.json({ ok: true });
     }
 
-    // 1. Fetch full email from Resend using the CORRECT receiving method
-    const { data: email, error } = await resend.emails.receiving.get(eventData.email_id);
+    let finalHtml = eventData.html || "";
+    let finalText = eventData.text || eventData.subject || "No content";
 
-    if (error || !email) {
-      console.error("❌ Failed to fetch email from Resend Receiving API:", error);
-      return NextResponse.json({ error: "fail" }, { status: 500 });
-    }
+    // SDK ka koi natak nahi. Direct Resend REST API fetch.
+    try {
+      const apiRes = await fetch(`https://api.resend.com/emails/${eventData.email_id}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      });
 
-    let finalHtml = email.html || "";
-    let finalText = email.text || eventData.subject || "No content";
-
-    // 2. The Ultimate Fallback (DeepSeek's raw MIME trick)
-    if (!finalHtml && email.raw?.download_url) {
-      try {
-        console.log("⚠️ HTML is empty, downloading raw MIME from Resend...");
-        const rawResponse = await fetch(email.raw.download_url);
-        const rawContent = await rawResponse.text();
-        const parsed = await simpleParser(rawContent);
-        
-        finalHtml = parsed.html || "";
-        finalText = parsed.text || finalText;
-        console.log("✅ Successfully parsed raw MIME data");
-      } catch (rawErr) {
-        console.error("❌ Failed to parse raw email:", rawErr);
+      if (apiRes.ok) {
+        const fullEmail = await apiRes.json();
+        if (fullEmail.html) finalHtml = fullEmail.html;
+        if (fullEmail.text) finalText = fullEmail.text;
+        console.log("✅ Fetched full body from API");
+      } else {
+        console.log("⚠️ API fetch failed, using fallback metadata.");
       }
+    } catch (fetchErr) {
+      console.log("⚠️ Fetch throw error, using fallback metadata:", fetchErr);
     }
 
-    // 3. Save to MongoDB
+    // 🚀 Yeh DB save ab HAR HAAL mein chalega, koi 500 block nahi karega.
     await connectToDatabase();
 
     await Email.create({
@@ -59,11 +53,13 @@ export async function POST(req) {
       receivedAt: new Date(eventData.created_at || Date.now()),
     });
 
-    console.log("✅ EMAIL SAVED SUCCESS WITH FULL BODY");
+    console.log("✅ EMAIL SAVED SUCCESS!");
+    // Hamesha 200/Success return karo taaki webhook loop mein na fase
     return NextResponse.json({ success: true });
 
   } catch (err) {
-    console.error("❌ WEBHOOK ERROR:", err);
-    return NextResponse.json({ error: "fail" }, { status: 500 });
+    console.error("❌ WEBHOOK CRITICAL ERROR:", err);
+    // Yahan bhi 500 nahi dena, safe exit karna hai
+    return NextResponse.json({ ok: true });
   }
 }
