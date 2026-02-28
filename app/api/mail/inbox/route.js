@@ -27,7 +27,7 @@ export async function GET(req) {
       .sort({ receivedAt: -1 })
       .skip(skip)
       .limit(limit)
-      .lean();
+      .lean(); // lean() se pure document milte hain, including html
 
     const total = await Email.countDocuments({ folder });
 
@@ -38,6 +38,8 @@ export async function GET(req) {
       to: mail.to,
       subject: mail.subject,
       preview: mail.preview,
+      html: mail.html,           // ✅ HTML ab frontend ko milega
+      text: mail.text,           // (optional) plain text bhi bhej rahe
       read: mail.read,
       starred: mail.starred,
       folder: mail.folder,
