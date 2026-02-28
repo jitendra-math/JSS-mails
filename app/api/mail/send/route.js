@@ -15,7 +15,8 @@ export async function POST(req) {
       );
     }
 
-    const { to, subject, html, text, from } = await req.json();
+    // 👇 Yahan attachments ko extract kiya
+    const { to, subject, html, text, from, attachments } = await req.json();
 
     if (!to) {
       return NextResponse.json(
@@ -38,7 +39,8 @@ export async function POST(req) {
       to,
       subject: subject || "(No Subject)",
       html,
-      text: stripHtml(html || text || ""), // Recipient ke liye clean text version
+      text: stripHtml(html || text || ""), 
+      attachments: attachments || [], // 👇 Yahan attachments Resend ko di
     });
 
     if (!result.success) {
@@ -51,18 +53,24 @@ export async function POST(req) {
     // 💾 Save to DB (Sent folder)
     await connectToDatabase();
 
-    // Fix: Prioritize stripping HTML to get real plain text for the preview
     const cleanContent = html ? stripHtml(html) : (text || "");
     const finalPreview = generatePreview(cleanContent);
+
+    // 👇 DB ke liye path ko url me map kiya (kyunki schema me 'url' hai)
+    const dbAttachments = (attachments || []).map(att => ({
+      filename: att.filename,
+      url: att.path 
+    }));
 
     await Email.create({
       messageId: generateId(),
       from: from || process.env.EMAIL_FROM,
       to,
       subject: subject || "(No Subject)",
-      html: html || "", // Full HTML for MailView
-      text: cleanContent, // Clean text for fallbacks
-      preview: finalPreview, // Clean preview for the list
+      html: html || "", 
+      text: cleanContent, 
+      preview: finalPreview, 
+      attachments: dbAttachments, // 👇 Yahan attachments DB me save ki (Sent folder ke liye)
       folder: "sent",
       read: true,
       receivedAt: new Date(),
