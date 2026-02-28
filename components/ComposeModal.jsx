@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { EMAIL_PROFILES } from "@/lib/constants";
 
 export default function ComposeModal({ isOpen, onClose, onSent }) {
@@ -9,11 +9,52 @@ export default function ComposeModal({ isOpen, onClose, onSent }) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  
-  // Naya state: Toggle between "code" and "preview"
   const [viewMode, setViewMode] = useState("code"); 
 
+  // --- Attachments ke naye states ---
+  const [attachments, setAttachments] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
   if (!isOpen) return null;
+
+  // File Upload Logic
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Tumhari banayi hui Vercel Blob API call ho rahi hai
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      // Success hone par file list mein add kar do
+      setAttachments((prev) => [...prev, { filename: data.name, url: data.url }]);
+
+    } catch (err) {
+      console.error(err);
+      alert("Attachment upload failed: " + err.message);
+    } finally {
+      setUploading(false);
+      e.target.value = ""; // Taki same file dobara select ho sake
+    }
+  };
+
+  const removeAttachment = (indexToRemove) => {
+    setAttachments((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
 
   const handleSend = async () => {
     if (!to) return alert("Recipient required");
@@ -29,8 +70,12 @@ export default function ComposeModal({ isOpen, onClose, onSent }) {
           to,
           subject,
           html: message,
-          // Fallback text humara backend (route.js) khud stripHtml karke bana lega
-          text: message, 
+          text: message,
+          // Resend API url ko 'path' field se accept karta hai
+          attachments: attachments.map(att => ({
+            filename: att.filename,
+            path: att.url 
+          }))
         }),
       });
 
@@ -47,6 +92,7 @@ export default function ComposeModal({ isOpen, onClose, onSent }) {
       setSubject("");
       setMessage("");
       setViewMode("code");
+      setAttachments([]); // Naya: Attachments bhi clear karo
 
       onSent && onSent();
       onClose();
@@ -62,7 +108,7 @@ export default function ComposeModal({ isOpen, onClose, onSent }) {
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end">
       
-      {/* Modal - h-[95vh] thoda aur bada kiya for better coding space */}
+      {/* Modal */}
       <div className="w-full bg-white rounded-t-3xl shadow-2xl p-4 h-[95vh] flex flex-col">
 
         {/* Header */}
@@ -78,7 +124,7 @@ export default function ComposeModal({ isOpen, onClose, onSent }) {
 
           <button
             onClick={handleSend}
-            disabled={sending}
+            disabled={sending || uploading}
             className="text-primary font-semibold active:opacity-70 disabled:opacity-50 text-base"
           >
             {sending ? "Sending..." : "Send"}
@@ -116,7 +162,7 @@ export default function ComposeModal({ isOpen, onClose, onSent }) {
             />
           </div>
 
-          {/* Subject */}
+          {/* Subject with Attachment Button */}
           <div className="flex items-center border-b border-gray-100 py-3">
             <span className="text-gray-400 text-sm w-16">Subject:</span>
             <input
@@ -126,9 +172,49 @@ export default function ComposeModal({ isOpen, onClose, onSent }) {
               className="flex-1 bg-transparent outline-none text-sm font-semibold"
               placeholder="Email subject..."
             />
+            
+            {/* Hidden File Input */}
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+              className="hidden" 
+            />
+            
+            {/* Paperclip Icon Button */}
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="ml-2 text-gray-400 hover:text-primary active:opacity-60 disabled:opacity-50"
+            >
+              {uploading ? (
+                <span className="animate-spin text-sm">↻</span>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                </svg>
+              )}
+            </button>
           </div>
 
-          {/* Apple Style Segmented Control (Toggle) */}
+          {/* Uploaded Attachments Chips */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 py-3 border-b border-gray-100">
+              {attachments.map((att, index) => (
+                <div key={index} className="flex items-center bg-gray-100 text-xs px-3 py-1.5 rounded-full">
+                  <span className="text-gray-700 truncate max-w-[150px]">{att.filename}</span>
+                  <button 
+                    onClick={() => removeAttachment(index)}
+                    className="ml-2 text-gray-400 hover:text-red-500 font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Toggle Code / Preview */}
           <div className="flex p-1 mt-4 bg-gray-100/80 rounded-lg">
             <button
               onClick={() => setViewMode("code")}
