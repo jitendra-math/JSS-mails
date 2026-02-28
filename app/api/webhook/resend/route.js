@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
 import Email from "@/models/Email";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req) {
   try {
@@ -11,47 +8,39 @@ export async function POST(req) {
     console.log("📩 FULL WEBHOOK:", JSON.stringify(body, null, 2));
 
     const data = body?.data;
-    if (!data || !data.email_id) {
-      console.log("No email data or email_id found");
+    if (!data) {
+      console.log("No email data found");
       return NextResponse.json({ ok: true });
     }
 
-    // 🚀 THE REAL FIX: 
-    // Webhook sirf metadata laya hai. 
-    // Sahi 'receiving' API call karke asli HTML body nikal rahe hain.
-    let fullHtml = "";
-    let fullText = data.subject || "No content";
-
-    const { data: fullEmail, error } = await resend.emails.receiving.get(data.email_id);
-
-    if (error || !fullEmail) {
-      console.error("❌ Failed to fetch inbound email body from Resend:", error);
-    } else {
-      fullHtml = fullEmail.html || "";
-      fullText = fullEmail.text || data.subject;
-    }
-
     await connectToDatabase();
+
+    // 🚀 Fallback Logic:
+    // Agar html ya text body nahi aati hai (jaise Instagram OTP mein),
+    // Toh hum subject ko hi body maan lete hain.
+    const emailHtml = data.html || "";
+    const emailText = data.text || data.subject || "No content provided in this email.";
 
     await Email.create({
       messageId: data.message_id || data.id || Date.now().toString(),
       from: data.from || "unknown",
       to: Array.isArray(data.to) ? data.to[0] : (data.to || "unknown"),
       subject: data.subject || "(no subject)",
-      html: fullHtml,
-      text: fullText,
-      preview: fullText.substring(0, 100),
+      html: emailHtml,
+      text: emailText,
+      preview: emailText.substring(0, 100),
       folder: "inbox",
       read: false,
       receivedAt: new Date(),
     });
 
-    console.log("✅ EMAIL SAVED SUCCESS WITH FULL HTML BODY");
+    console.log("✅ EMAIL SAVED SUCCESS");
 
     return NextResponse.json({ success: true });
 
   } catch (err) {
     console.error("❌ WEBHOOK ERROR:", err);
-    return NextResponse.json({ error: "fail" }, { status: 500 });
+    // Even if it fails, return 200 to acknowledge webhook receipt
+    return NextResponse.json({ error: "fail" }, { status: 200 }); 
   }
 }
