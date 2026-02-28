@@ -60,7 +60,7 @@ export default function MailView({ mail, onClose, onDelete }) {
           </div>
         </div>
 
-        {/* The Body (Iframe for HTML support) */}
+        {/* The Body (Iframe for HTML support with strict undefined checks) */}
         <div className="flex-1 relative min-h-[400px]">
           <iframe
             srcDoc={`
@@ -84,7 +84,11 @@ export default function MailView({ mail, onClose, onDelete }) {
                   </style>
                 </head>
                 <body>
-                  ${mail.html || `<pre style="white-space: pre-wrap; font-family: inherit;">${mail.text}</pre>`}
+                  ${
+                    (mail.html && mail.html !== "undefined") ? mail.html : 
+                    (mail.text && mail.text !== "undefined") ? `<pre style="white-space: pre-wrap; font-family: inherit;">${mail.text}</pre>` : 
+                    '<p style="color:gray; font-style:italic;">No content available for this email.</p>'
+                  }
                 </body>
               </html>
             `}
