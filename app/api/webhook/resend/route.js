@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
 import Email from "@/models/Email";
+import { put } from "@vercel/blob"; // Naya Vercel Blob import
 
 export async function POST(req) {
   try {
@@ -14,9 +15,10 @@ export async function POST(req) {
 
     const emailId = eventData.email_id;
 
-    // ✅ Fetch full content from Resend (receiving endpoint)
+    // Fetch full content from Resend (receiving endpoint)
     let html = "";
     let text = "";
+    let uploadedAttachments = []; // Blob URLs save karne ke liye array
 
     try {
       const apiRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
@@ -32,9 +34,44 @@ export async function POST(req) {
         html = fullEmail.html || "";
         text = fullEmail.text || "";
         console.log(`✅ HTML fetched, length: ${html.length}`);
+
+        // --- PREMIUM ATTACHMENT UPLOAD LOGIC ---
+        if (fullEmail.attachments && Array.isArray(fullEmail.attachments) && fullEmail.attachments.length > 0) {
+          console.log(`📎 Found ${fullEmail.attachments.length} attachments. Uploading to Vercel Blob...`);
+          
+          for (const att of fullEmail.attachments) {
+            try {
+              // Resend attachments ko Base64 text mein bhejta hai, hum isko wapas binary/buffer banayenge
+              const fileBuffer = Buffer.from(att.content, "base64");
+              
+              // Unique naam banayenge taaki overwrite na ho
+              const uniqueFilename = `attachments/${Date.now()}-${att.filename}`;
+
+              // Vercel Blob par upload
+              const blob = await put(uniqueFilename, fileBuffer, {
+                access: "public",
+                contentType: att.content_type || "application/octet-stream",
+              });
+
+              // Array mein save kar lo DB ke liye
+              uploadedAttachments.push({
+                filename: att.filename,
+                url: blob.url,
+                size: fileBuffer.length, // Exact file size in bytes
+                contentType: att.content_type || "application/octet-stream",
+              });
+
+              console.log(`✅ Uploaded: ${att.filename} -> ${blob.url}`);
+            } catch (uploadErr) {
+              console.error(`❌ Failed to upload attachment ${att.filename}:`, uploadErr);
+              // Agar ek attachment fail ho jaye toh email fail na ho, isliye continue
+            }
+          }
+        }
+        // ---------------------------------------
+
       } else {
         console.error(`❌ Resend API error: ${apiRes.status}`);
-        // fallback – metadata me html nahi hota, toh text hi bhejo
         text = eventData.subject || "No content";
       }
     } catch (fetchErr) {
@@ -42,7 +79,7 @@ export async function POST(req) {
       text = eventData.subject || "No content";
     }
 
-    // ✅ MongoDB me save
+    // MongoDB me save
     await connectToDatabase();
 
     const emailDoc = {
@@ -53,13 +90,14 @@ export async function POST(req) {
       html: html,
       text: text,
       preview: (text || html).substring(0, 100),
+      attachments: uploadedAttachments, // Naya updated attachments array yahan save hoga
       folder: "inbox",
       read: false,
       receivedAt: new Date(eventData.created_at || Date.now()),
     };
 
     await Email.create(emailDoc);
-    console.log("✅ Email saved with HTML");
+    console.log("✅ Email saved with HTML and Attachments");
 
     return NextResponse.json({ success: true });
   } catch (err) {
