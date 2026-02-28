@@ -1,30 +1,34 @@
 import "./globals.css";
 import Providers from "@/components/Providers";
 
+// Modern Next.js Metadata API for SEO & PWA
 export const metadata = {
   title: "JSS Mail",
   description: "Private Mail System",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.png",             // Browser tab favicon
+    apple: "/apple-touch-icon.png",   // Apple iOS Home Screen icon
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "JSS Mail",
+  },
+};
+
+// Viewport settings for Mobile App feel
+export const viewport = {
+  themeColor: "#007AFF",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // Prevents unwanted zoom on mobile inputs
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head>
-        {/* PWA manifest */}
-        <link rel="manifest" href="/manifest.json" />
-
-        {/* Theme color */}
-        <meta name="theme-color" content="#007AFF" />
-
-        {/* Mobile full screen */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-
-        {/* iOS icon (optional but nice) */}
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-      </head>
-
       <body className="min-h-screen bg-softbg">
         {/* TanStack Query Provider wrapping the whole app */}
         <Providers>
