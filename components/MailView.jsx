@@ -60,27 +60,56 @@ export default function MailView({ mail, onClose, onDelete }) {
           </div>
         </div>
 
-        {/* The Body (Iframe for HTML support with strict undefined checks) */}
+        {/* The Body (Iframe for HTML support with AGGRESSIVE MOBILE CSS) */}
         <div className="flex-1 relative min-h-[400px]">
           <iframe
             srcDoc={`
               <!DOCTYPE html>
               <html>
                 <head>
-                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
                   <style>
-                    body { 
+                    /* Force everything to stay within the screen bounds */
+                    html, body { 
                       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-                      padding: 20px; 
-                      margin: 0; 
-                      line-height: 1.6;
+                      padding: 10px !important; 
+                      margin: 0 !important; 
+                      width: 100vw !important;
+                      max-width: 100% !important;
+                      overflow-x: hidden !important; /* Blocks horizontal scrolling */
+                      box-sizing: border-box !important;
                       color: #222;
-                      word-break: break-word;
                       -webkit-font-smoothing: antialiased;
                     }
-                    img { max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; }
+
+                    /* Brahmastra for Tables (Instagram/Bank emails) */
+                    table, thead, tbody, tfoot, tr, th, td, div, center {
+                      width: 100% !important;
+                      max-width: 100% !important;
+                      min-width: 0 !important;
+                      display: block !important; /* Breaks the rigid table layout */
+                      box-sizing: border-box !important;
+                      clear: both !important;
+                    }
+
+                    /* Fix Images from breaking out */
+                    img { 
+                      max-width: 100% !important; 
+                      height: auto !important; 
+                      display: block !important;
+                      margin: 10px auto !important; 
+                      border-radius: 8px;
+                    }
+
+                    /* Fix long links and text */
+                    a, p, span, h1, h2, h3, h4, h5, h6 { 
+                      word-wrap: break-word !important; 
+                      word-break: break-word !important; 
+                      white-space: normal !important;
+                      max-width: 100% !important;
+                    }
+                    
                     a { color: #007AFF; text-decoration: none; }
-                    p { margin-bottom: 1em; }
                   </style>
                 </head>
                 <body>
