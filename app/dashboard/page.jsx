@@ -8,13 +8,15 @@ import MailView from "@/components/MailView";
 import ComposeModal from "@/components/ComposeModal";
 import BottomNav from "@/components/BottomNav";
 
+// Naya Hathiyar import kar liya
+import { triggerHaptic } from "@/lib/utils";
+
 export default function DashboardPage() {
   const queryClient = useQueryClient();
   const [selectedMail, setSelectedMail] = useState(null);
   const [showCompose, setShowCompose] = useState(false);
   const [currentFolder, setCurrentFolder] = useState("inbox");
 
-  // Manual key ki zaroorat nahi, sirf cache ko 'invalid' mark karna hai
   const refreshMails = () => {
     queryClient.invalidateQueries({ queryKey: ["emails"] });
   };
@@ -24,23 +26,31 @@ export default function DashboardPage() {
 
       {/* Header */}
       <Header
-        onCompose={() => setShowCompose(true)}
+        onCompose={() => {
+          triggerHaptic("medium"); // Compose kholte hi solid tick
+          setShowCompose(true);
+        }}
       />
 
-      {/* Mail list - No refreshKey needed anymore */}
+      {/* Mail list */}
       <InboxList
         folder={currentFolder}
-        onOpenMail={(mail) => setSelectedMail(mail)}
+        onOpenMail={(mail) => {
+          triggerHaptic("light"); // Mail open karte hi soft tick
+          setSelectedMail(mail);
+        }}
       />
 
       {/* Open mail view */}
       <MailView
         mail={selectedMail}
         onClose={() => {
+          triggerHaptic("light");
           setSelectedMail(null);
-          refreshMails(); // Cache refresh when closing (to update read status)
+          refreshMails();
         }}
         onDelete={async (mail) => {
+          triggerHaptic("heavy"); // Delete karte time heavy vibration
           const isPermanent = currentFolder === "trash";
           
           try {
@@ -51,7 +61,7 @@ export default function DashboardPage() {
             });
 
             setSelectedMail(null);
-            refreshMails(); // Instant UI update
+            refreshMails(); 
           } catch (err) {
             console.error("Delete failed", err);
           }
@@ -62,15 +72,21 @@ export default function DashboardPage() {
       <ComposeModal
         isOpen={showCompose}
         onClose={() => setShowCompose(false)}
-        onSent={refreshMails} // Instant update after sending
+        onSent={() => {
+          triggerHaptic("success"); // Mail send hone par double tap!
+          refreshMails();
+        }} 
       />
 
       {/* Premium Bottom Navigation */}
       <BottomNav 
         activeFolder={currentFolder}
         onChangeFolder={(folder) => {
-          setCurrentFolder(folder);
-          setSelectedMail(null);
+          if (folder !== currentFolder) {
+            triggerHaptic("light"); // Tab change karte hi subtle feel
+            setCurrentFolder(folder);
+            setSelectedMail(null);
+          }
         }}
       />
       
