@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
 import Email from "@/models/Email";
-import { put } from "@vercel/blob"; // Naya Vercel Blob import
+import Subscription from "@/models/Subscription"; // Naya import Notifications ke liye
+import { put } from "@vercel/blob";
+import webpush from "web-push"; // Naya import Notifications engine ke liye
+
+// 🔐 Web-Push Engine Setup (Apne aap .env se keys uthayega)
+webpush.setVapidDetails(
+  process.env.VAPID_SUBJECT,
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
 
 export async function POST(req) {
   try {
@@ -98,6 +107,46 @@ export async function POST(req) {
 
     await Email.create(emailDoc);
     console.log("✅ Email saved with HTML and Attachments");
+
+    // ==========================================
+    // 🔥 THE MAGIC: SENDING PUSH NOTIFICATION
+    // ==========================================
+    try {
+      console.log("🔔 Triggering push notifications...");
+      // MongoDB se saare allow kiye hue devices (tokens) uthao
+      const subscriptions = await Subscription.find({});
+
+      // Notification ka Premium Look tayyar karo
+      const notificationPayload = JSON.stringify({
+        title: emailDoc.from,
+        body: emailDoc.subject || "You have a new email",
+        url: "/dashboard" // Click karne par yahan layega
+      });
+
+      // Har device par notification bhej do
+      const pushPromises = subscriptions.map(async (sub) => {
+        try {
+          await webpush.sendNotification(sub.subscription, notificationPayload);
+        } catch (pushErr) {
+          // Agar kisi ne browser se notification block kar di baad mein, toh usko DB se hata do
+          if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
+            await Subscription.findByIdAndDelete(sub._id);
+            console.log("🗑️ Removed invalid subscription");
+          } else {
+            console.error("Error sending to a device:", pushErr);
+          }
+        }
+      });
+
+      // Wait for all notifications to be sent
+      await Promise.all(pushPromises);
+      console.log("✅ Push notifications sent successfully!");
+
+    } catch (notifyErr) {
+      console.error("❌ Notification Engine Error:", notifyErr);
+      // Agar notification fail bhi ho jaye, toh email webhook crash na ho
+    }
+    // ==========================================
 
     return NextResponse.json({ success: true });
   } catch (err) {
