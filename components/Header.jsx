@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { SquarePen, LogOut } from "lucide-react";
 import { triggerHaptic } from "@/lib/utils";
+import EnableNotifications from "./EnableNotifications"
 
 export default function Header({ onCompose }) {
   
@@ -39,6 +40,7 @@ export default function Header({ onCompose }) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
+          <EnableNotifications/>
           
           {/* Logout Button (Sleek grey circle) */}
           <button
