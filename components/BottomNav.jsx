@@ -1,41 +1,33 @@
 "use client";
 
+// Tere premium Lucide icons yahan import ho gaye
+import { Mail, Send, Trash2 } from "lucide-react";
+
 export default function BottomNav({ activeFolder, onChangeFolder }) {
   const navItems = [
     {
       id: "inbox",
       label: "Inbox",
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
-          <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
-        </svg>
-      ),
+      // Inbox ke liye standard Mail icon
+      icon: (isActive) => <Mail className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />,
     },
     {
       id: "sent",
       label: "Sent",
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"></line>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-        </svg>
-      ),
+      // Sent ke liye Paper Plane (Send) icon
+      icon: (isActive) => <Send className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />,
     },
     {
       id: "trash",
       label: "Trash",
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
-      ),
+      // Trash ke liye wo exact trash-2 icon jo tune bheja tha
+      icon: (isActive) => <Trash2 className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />,
     }
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl bg-white/80 border-t border-gray-100 safe-bottom">
+    // 🪟 Premium iOS Frosted Glass Effect
+    <div className="fixed bottom-0 left-0 right-0 z-40 backdrop-blur-2xl bg-white/70 border-t border-white/40 shadow-[0_-8px_30px_rgba(0,0,0,0.04)] safe-bottom pb-2">
       <div className="flex items-center justify-around px-2 py-2">
         {navItems.map((item) => {
           const isActive = activeFolder === item.id;
@@ -43,14 +35,17 @@ export default function BottomNav({ activeFolder, onChangeFolder }) {
             <button
               key={item.id}
               onClick={() => onChangeFolder(item.id)}
-              className={`flex flex-col items-center justify-center w-full py-1 space-y-1 transition active:scale-95 ${
-                isActive ? "text-primary" : "text-gray-400"
+              className={`flex flex-col items-center justify-center w-full py-1 space-y-1 transition-all duration-200 active:scale-90 ${
+                isActive ? "text-primary" : "text-gray-400 hover:text-gray-500"
               }`}
             >
-              <div className={isActive ? "scale-110 transition-transform" : ""}>
-                {item.icon}
+              {/* Icon container with bounce effect on active */}
+              <div className={`transition-all duration-300 ${isActive ? "scale-110 -translate-y-0.5 drop-shadow-sm" : ""}`}>
+                {item.icon(isActive)}
               </div>
-              <span className="text-[10px] font-medium tracking-wide">
+              
+              {/* Label */}
+              <span className={`text-[10px] tracking-wide transition-all ${isActive ? "font-bold" : "font-medium"}`}>
                 {item.label}
               </span>
             </button>
