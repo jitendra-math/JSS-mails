@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { FileText, Image as ImageIcon, FileArchive, File, Download, Paperclip } from "lucide-react";
+import { 
+  FileText, Image as ImageIcon, FileArchive, 
+  File, Download, Paperclip, ChevronLeft, Trash2 
+} from "lucide-react";
+import { triggerHaptic } from "@/lib/utils";
 
 // Utility: Bytes ko properly KB/MB me convert karne ke liye
 const formatBytes = (bytes, decimals = 1) => {
@@ -30,6 +34,17 @@ const getFileIcon = (contentType, filename) => {
   return <File className="text-gray-500 w-8 h-8" />;
 };
 
+// Utility: Generate colorful avatar based on sender name
+const getAvatarConfig = (name) => {
+  const char = name ? name.charAt(0).toUpperCase() : "?";
+  const colors = [
+    "bg-blue-500", "bg-purple-500", "bg-green-500", 
+    "bg-orange-500", "bg-pink-500", "bg-teal-500", "bg-indigo-500"
+  ];
+  const colorIndex = name ? name.charCodeAt(0) % colors.length : 0;
+  return { char, colorClass: colors[colorIndex] };
+};
+
 export default function MailView({ mail, onClose, onDelete }) {
   if (!mail) return null;
 
@@ -44,56 +59,80 @@ export default function MailView({ mail, onClose, onDelete }) {
     }
   }, [mail]);
 
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
+  const handleDelete = () => {
+    triggerHaptic("heavy");
+    onDelete(mail);
+  };
+
+  const handleDone = () => {
+    triggerHaptic("success");
+    onClose();
+  };
+
+  const avatar = getAvatarConfig(mail.from);
+
   return (
     <div className="fixed inset-0 z-[60] bg-white flex flex-col safe-top animate-in slide-in-from-right duration-300">
 
-      {/* Luxury Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white/90 backdrop-blur-md sticky top-0 z-10">
+      {/* 🪟 Luxury Frosted Header */}
+      <div className="flex items-center justify-between px-3 py-3 border-b border-gray-100/50 bg-white/80 backdrop-blur-xl sticky top-0 z-20">
         <button
-          onClick={onClose}
-          className="text-primary font-medium flex items-center gap-1 active:opacity-60"
+          onClick={handleClose}
+          className="text-primary font-medium flex items-center gap-0.5 active:opacity-60 transition-opacity"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-          Back
+          <ChevronLeft className="w-6 h-6" strokeWidth={2.5} />
+          <span className="text-[17px] tracking-tight mb-[1px]">Back</span>
         </button>
 
         <button
-          onClick={() => onDelete(mail)}
-          className="text-red-500 text-sm font-semibold active:opacity-60"
+          onClick={handleDelete}
+          className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full transition-colors active:scale-95"
+          title="Delete Mail"
         >
-          Delete
+          <Trash2 className="w-5 h-5" strokeWidth={2} />
         </button>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto bg-white flex flex-col">
+      <div className="flex-1 overflow-y-auto bg-white flex flex-col relative z-0">
         
-        {/* Email Meta Data */}
-        <div className="px-5 py-6 border-b border-gray-50">
-          <h1 className="text-2xl font-bold text-gray-900 leading-tight tracking-tight mb-3">
+        {/* Email Meta Data with Avatar */}
+        <div className="px-5 py-6">
+          <h1 className="text-[26px] font-bold text-gray-900 leading-[1.15] tracking-tight mb-5">
             {mail.subject}
           </h1>
           
           <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <span className="text-sm text-gray-400">From:</span>
-              <span className="text-sm font-semibold text-gray-800">{mail.from}</span>
+            <div className="flex items-center gap-3">
+              {/* Premium Sender Avatar */}
+              <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-sm ${avatar.colorClass}`}>
+                {avatar.char}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[15px] font-bold text-gray-900 tracking-tight leading-tight">{mail.from}</span>
+                <span className="text-[13px] text-gray-500 font-medium tracking-tight">to {mail.folder === "sent" ? mail.to : "me"}</span>
+              </div>
             </div>
             <div className="text-right">
-              <div className="text-[11px] font-bold text-gray-300 uppercase tracking-widest">Received</div>
-              <div className="text-xs font-medium text-gray-500">{mail.time}</div>
+              <div className="text-[12px] font-semibold text-gray-400">{mail.time}</div>
             </div>
           </div>
         </div>
 
+        {/* Subtle Divider */}
+        <div className="mx-5 border-b border-gray-100"></div>
+
         {/* --- PREMIUM ATTACHMENTS SECTION --- */}
         {mail.attachments && mail.attachments.length > 0 && (
-          <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          <div className="px-5 py-5 border-b border-gray-100 bg-gray-50/30">
             <div className="flex items-center gap-2 mb-3">
               <Paperclip className="w-4 h-4 text-gray-400" />
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+              <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
                 {mail.attachments.length} Attachments
               </h3>
             </div>
@@ -103,32 +142,33 @@ export default function MailView({ mail, onClose, onDelete }) {
               {mail.attachments.map((att, idx) => (
                 <div 
                   key={idx} 
-                  className="snap-start flex-shrink-0 w-60 bg-white border border-gray-200 rounded-2xl p-3 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow relative group"
+                  className="snap-start flex-shrink-0 w-64 bg-white border border-gray-200/80 rounded-2xl p-3 flex items-center gap-3 shadow-sm active:scale-95 transition-all relative group"
                 >
                   {/* Dynamic File Icon */}
-                  <div className="flex-shrink-0 bg-gray-50 p-2 rounded-xl">
+                  <div className="flex-shrink-0 bg-gray-50 p-2.5 rounded-xl">
                     {getFileIcon(att.contentType, att.filename)}
                   </div>
 
                   {/* File Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate" title={att.filename}>
+                    <p className="text-[14px] font-semibold text-gray-800 truncate" title={att.filename}>
                       {att.filename}
                     </p>
-                    <p className="text-xs text-gray-400 font-medium">
+                    <p className="text-[12px] text-gray-400 font-medium">
                       {formatBytes(att.size)}
                     </p>
                   </div>
 
-                  {/* Download Button (Direct Link to Vercel Blob) */}
+                  {/* Download Button */}
                   <a 
                     href={att.url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex-shrink-0 bg-gray-100 hover:bg-primary/10 hover:text-primary p-2 rounded-full text-gray-400 transition-colors"
+                    onClick={() => triggerHaptic("light")}
+                    className="flex-shrink-0 bg-blue-50 hover:bg-blue-100 text-blue-600 p-2.5 rounded-full transition-colors"
                     title="Download / View"
                   >
-                    <Download className="w-4 h-4" />
+                    <Download className="w-4 h-4" strokeWidth={2.5} />
                   </a>
                 </div>
               ))}
@@ -138,7 +178,7 @@ export default function MailView({ mail, onClose, onDelete }) {
         {/* ----------------------------------- */}
 
         {/* The Body (Iframe for HTML support with AGGRESSIVE MOBILE CSS) */}
-        <div className="flex-1 relative min-h-[400px]">
+        <div className="flex-1 relative min-h-[500px] bg-white">
           <iframe
             srcDoc={`
               <!DOCTYPE html>
@@ -148,25 +188,23 @@ export default function MailView({ mail, onClose, onDelete }) {
                   <style>
                     /* Force everything to stay within the screen bounds */
                     html, body { 
-                      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-                      padding: 10px !important; 
+                      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+                      padding: 12px !important; 
                       margin: 0 !important; 
                       width: 100vw !important;
                       max-width: 100% !important;
-                      overflow-x: hidden !important; /* Blocks horizontal scrolling */
+                      overflow-x: hidden !important; 
                       box-sizing: border-box !important;
-                      color: #222;
+                      color: #1c1c1e;
+                      font-size: 15px;
+                      line-height: 1.5;
                       -webkit-font-smoothing: antialiased;
                     }
 
                     /* Brahmastra for Tables (Instagram/Bank emails) */
                     table, thead, tbody, tfoot, tr, th, td, div, center {
-                      width: 100% !important;
                       max-width: 100% !important;
-                      min-width: 0 !important;
-                      display: block !important; /* Breaks the rigid table layout */
                       box-sizing: border-box !important;
-                      clear: both !important;
                     }
 
                     /* Fix Images from breaking out */
@@ -174,7 +212,7 @@ export default function MailView({ mail, onClose, onDelete }) {
                       max-width: 100% !important; 
                       height: auto !important; 
                       display: block !important;
-                      margin: 10px auto !important; 
+                      margin: 12px 0 !important; 
                       border-radius: 8px;
                     }
 
@@ -192,8 +230,8 @@ export default function MailView({ mail, onClose, onDelete }) {
                 <body>
                   ${
                     (mail.html && mail.html !== "undefined") ? mail.html : 
-                    (mail.text && mail.text !== "undefined") ? `<pre style="white-space: pre-wrap; font-family: inherit;">${mail.text}</pre>` : 
-                    '<p style="color:gray; font-style:italic;">No content available for this email.</p>'
+                    (mail.text && mail.text !== "undefined") ? `<pre style="white-space: pre-wrap; font-family: inherit; font-size: 15px;">${mail.text}</pre>` : 
+                    '<p style="color:#999; font-style:italic; text-align:center; margin-top:40px;">No content available for this email.</p>'
                   }
                 </body>
               </html>
@@ -205,18 +243,18 @@ export default function MailView({ mail, onClose, onDelete }) {
         </div>
       </div>
 
-      {/* Bottom Action Bar */}
-      <div className="border-t border-gray-100 px-6 py-4 flex justify-between items-center bg-gray-50/50 safe-bottom">
+      {/* 🪟 Luxury Frosted Bottom Action Bar */}
+      <div className="border-t border-white/40 px-6 py-4 flex justify-between items-center bg-white/80 backdrop-blur-2xl safe-bottom sticky bottom-0 z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
         <button
-          onClick={() => onDelete(mail)}
-          className="text-red-500 text-sm font-bold tracking-wide uppercase active:scale-95 transition"
+          onClick={handleDelete}
+          className="text-red-500 text-[15px] font-semibold tracking-wide active:scale-95 transition-transform"
         >
-          Move to Trash
+          Delete
         </button>
 
         <button
-          onClick={onClose}
-          className="bg-gray-900 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg active:scale-95 transition"
+          onClick={handleDone}
+          className="bg-primary text-white px-8 py-2.5 rounded-full text-[15px] font-bold shadow-[0_4px_14px_0_rgba(0,112,243,0.39)] hover:shadow-[0_6px_20px_rgba(0,118,255,0.23)] hover:bg-[rgba(0,118,255,0.9)] active:scale-95 transition-all"
         >
           Done
         </button>
