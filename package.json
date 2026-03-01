@@ -20,7 +20,8 @@
     "@vercel/blob": "^2.3.0",
     "lucide-react": "^0.575.0",
     "react-swipeable-list": "^1.10.0",
-    "prop-types": "^15.8.1"
+    "prop-types": "^15.8.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.19",
