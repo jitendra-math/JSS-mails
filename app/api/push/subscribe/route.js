@@ -1,38 +1,41 @@
 import { NextResponse } from "next/server";
+import connectToDatabase from "@/lib/db"; // Tera existing DB connection function
 import Subscription from "@/models/Subscription";
-import mongoose from "mongoose";
 
 export async function POST(req) {
   try {
-    // Agar DB connect nahi hai toh yahan connection logic daal dena 
-    // jaise: await dbConnect(); (agar tera alag se file hai)
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGODB_URI);
-    }
+    // 1. Database se connect karo
+    await connectToDatabase();
 
     const { subscription, userId, userAgent } = await req.json();
 
-    if (!subscription || !userId) {
-      return NextResponse.json({ error: "Missing data" }, { status: 400 });
+    // 2. Check karo ki browser ne token (subscription) bheja ya nahi
+    if (!subscription || !subscription.endpoint) {
+      return NextResponse.json({ error: "Invalid subscription token" }, { status: 400 });
     }
 
-    // Purani subscription check karo
+    // 3. Purani entry check karo (Taaki duplicate na bane)
+    // 'endpoint' har phone/browser ka ek unique address hota hai
     const existingSub = await Subscription.findOne({ 
       "subscription.endpoint": subscription.endpoint 
     });
 
     if (!existingSub) {
-      // Nayi subscription save karo
+      // 4. Agar naya device hai toh DB mein save kar do
       await Subscription.create({
-        userId,
-        subscription,
+        userId: userId || "jss_admin_user", // Default admin user
+        subscription: subscription,
         userAgent: userAgent || "Unknown Device"
       });
+      console.log("✅ Naya device notification ke liye jud gaya!");
+    } else {
+      console.log("⚡ Ye device pehle se DB mein juda hua hai.");
     }
 
     return NextResponse.json({ success: true, message: "Subscribed successfully" });
+    
   } catch (error) {
-    console.error("Subscription Error:", error);
+    console.error("❌ Subscription API Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
