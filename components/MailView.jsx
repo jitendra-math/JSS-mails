@@ -201,10 +201,14 @@ export default function MailView({ mail, onClose, onDelete }) {
                       -webkit-font-smoothing: antialiased;
                     }
 
-                    /* Brahmastra for Tables (Instagram/Bank emails) */
+                    /* Brahmastra for Tables (Instagram/Bank emails) - FIX RESTORED HERE */
                     table, thead, tbody, tfoot, tr, th, td, div, center {
+                      width: 100% !important;
                       max-width: 100% !important;
+                      min-width: 0 !important;
+                      display: block !important; /* Breaks the rigid table layout */
                       box-sizing: border-box !important;
+                      clear: both !important;
                     }
 
                     /* Fix Images from breaking out */
@@ -212,7 +216,7 @@ export default function MailView({ mail, onClose, onDelete }) {
                       max-width: 100% !important; 
                       height: auto !important; 
                       display: block !important;
-                      margin: 12px 0 !important; 
+                      margin: 12px auto !important; 
                       border-radius: 8px;
                     }
 
