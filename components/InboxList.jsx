@@ -13,7 +13,7 @@ import 'react-swipeable-list/dist/styles.css';
 import { Mail, MailOpen, Trash2, Inbox, Send, RefreshCw } from "lucide-react";
 import { triggerHaptic } from "@/lib/utils";
 
-// --- 1. Premium Sender Avatar Component (Clearbit API + Fallback) ---
+// --- 1. Premium Sender Avatar Component (Clearbit API + Subdomain Fix + Fallback) ---
 const SenderAvatar = ({ fromString }) => {
   const [imgError, setImgError] = useState(false);
 
@@ -26,7 +26,17 @@ const SenderAvatar = ({ fromString }) => {
   // Extract Domain for Logo Fetching
   let domain = null;
   if (email && email.includes('@')) {
-    const extractedDomain = email.split('@')[1].toLowerCase();
+    let extractedDomain = email.split('@')[1].toLowerCase();
+    
+    // 🔥 The Fix: Remove common subdomains (e.g., mail.instagram.com -> instagram.com)
+    const subdomains = ['mail.', 'email.', 'e.', 'notify.', 'notifications.', 'info.', 'support.', 'marketing.', 'news.', 'updates.', 'no-reply.'];
+    for (const sub of subdomains) {
+      if (extractedDomain.startsWith(sub)) {
+        extractedDomain = extractedDomain.replace(sub, '');
+        break; 
+      }
+    }
+
     // In free providers ke liye generic logo aane se acha hai humara colorful initial aaye
     const freeDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com'];
     if (!freeDomains.includes(extractedDomain)) {
@@ -47,7 +57,7 @@ const SenderAvatar = ({ fromString }) => {
         <img
           src={`https://logo.clearbit.com/${domain}`}
           alt={name}
-          className="w-[75%] h-[75%] object-contain"
+          className="w-[70%] h-[70%] object-contain"
           onError={() => setImgError(true)} // Fail hote hi text avatar pe switch
           loading="lazy"
         />
