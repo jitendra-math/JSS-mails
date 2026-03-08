@@ -26,9 +26,9 @@ export async function POST(req) {
     }
 
     // 🛡️ Security Check: Sender domain validation
-    if (from && !from.includes("@jssoriginals.online")) {
+    if (from && !from.includes("@jitubanna.com")) {
       return NextResponse.json(
-        { error: "Invalid sender domain. Only @jssoriginals.online is allowed." },
+        { error: "Invalid sender domain. Only @jitubanna.com is allowed." },
         { status: 403 }
       );
     }
